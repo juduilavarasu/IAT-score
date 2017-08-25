@@ -1,0 +1,193 @@
+# Implicit Association Test (IAT) scoring Script
+# Get file from the source
+getFile<-file.choose()
+iat1 <- read.table(getFile, header=TRUE, sep="\t", na.strings="NA", strip.white=TRUE)
+
+# Error percentage, Average Latency calculation for test block trial. 
+# All these calculations are done before any trial elimination
+# Subset of only test trails
+iat1<- subset(iat1, subset=blockcode!="targetincompatiblepractice" & blockcode!="targetcompatiblepractice" & blockcode!="attributepractice")
+# Calculation of total number of test trails attempted					
+iatValid <- aggregate(iat1[,c("correct"), drop=FALSE], by=list(subject=iat1$subject), FUN=length)
+iatValid$valid<-iatValid$correct
+iatValid$correct<-NULL
+# Calculation of Average latency for each subject
+iatMeanLat <- aggregate(iat1[,c("latency"), drop=FALSE], by=list(subject=iat1$subject), FUN=mean)
+
+# Calculation of error percentage
+iatError <- subset(iat1, subset=correct==1)
+iatError <- aggregate(iatError[,c("correct"), drop=FALSE], by=list(subject=iatError$subject), FUN=length)
+iatError<- merge(iatError, iatValid, by="subject")
+iatError$ErrPer<-((iatError$valid-iatError$correct)/iatError$valid)*100
+iatError$correct<-NULL
+
+# Percentage of trials < 300 ms
+iat300 <- subset(iat1, subset=latency<300)
+iat300 <- aggregate(iat300[,c("correct"), drop=FALSE], by=list(subject=iat300$subject),FUN=length)
+iat300<- merge(iat300, iatValid, by="subject",all=TRUE)
+iat300$Err300<-(iat300$correct/iat300$valid)*100
+iat300$correct<-NULL
+iat300$valid<-NULL
+iat300$Err300 [is.na(iat300$Err300)]<-0
+iat300 <-iat300[,c("subject","Err300")]
+
+# Percentage of trials < 400 ms
+iat400 <- subset(iat1, subset=latency<400)
+iat400 <- aggregate(iat400[,c("correct"), drop=FALSE], by=list(subject=iat400$subject),FUN=length)
+iat400<- merge(iat400, iatValid, by="subject",all=TRUE)
+iat400$Err400<-(iat400$correct/iat400$valid)*100
+iat400$correct<-NULL
+iat400$valid<-NULL
+iat400$Err400 [is.na(iat400$Err400)]<-0
+iat400 <-iat400[,c("subject","Err400")]
+
+# Percentage of trials > 10,000 ms
+iat10k <- subset(iat1, subset=latency>10000)
+iat10k <- aggregate(iat10k[,c("correct"), drop=FALSE], by=list(subject=iat10k$subject),FUN=length)
+iat10k<- merge(iat10k, iatValid, by="subject",all=TRUE)
+iat10k$Err10k<-(iat10k$correct/iat10k$valid)*100
+iat10k$correct<-NULL
+iat10k$valid<-NULL
+iat10k$Err10k [is.na(iat10k$Err10k)]<-0
+iat10k <-iat10k[,c("subject","Err10k")]
+
+# Remove latencies greater than 10,000 msec
+iat1 <- subset(iat1, subset=latency<=10000)
+
+# Calculation of Na and Nb
+Na <- subset(iat1, subset=blockcode=="incompatibletest1" | blockcode=="compatibletest1")
+Na <- aggregate(Na[,c("correct"), drop=FALSE], by=list(subject=Na$subject), FUN=length)
+Na$Na<-Na$correct
+Na$correct<-NULL
+
+Nb <- subset(iat1, subset=blockcode=="incompatibletest2" | blockcode=="compatibletest2")
+Nb <- aggregate(Nb[,c("correct"), drop=FALSE], by=list(subject=Nb$subject), FUN=length)
+Nb$Nb<-Nb$correct
+Nb$correct<-NULL
+
+# Subset main dataset into 4 differnt datasets
+incom1 <- subset(iat1, subset=blockcode=="incompatibletest1")
+incom2 <- subset(iat1, subset=blockcode=="incompatibletest2")
+com1 <- subset(iat1, subset=blockcode=="compatibletest1")
+com2 <- subset(iat1, subset=blockcode=="compatibletest2")
+sd1 <- subset(iat1, subset=blockcode=="incompatibletest1" | blockcode=="compatibletest1")
+sd2 <- subset(iat1, subset=blockcode=="incompatibletest2" | blockcode=="compatibletest2")
+
+# Individual block total has to be calculated
+
+# Calculation of N1, N2, N3 and N4
+Nc1 <- subset(iat1, subset=blockcode=="compatibletest1")
+Nc1 <- aggregate(Nc1[,c("correct"), drop=FALSE], by=list(subject=Nc1$subject), FUN=length)
+Nc1$Nc1<-Nc1$correct
+Nc1$correct<-NULL
+
+Nic1 <- subset(iat1, subset=blockcode=="incompatibletest1")
+Nic1 <- aggregate(Nic1[,c("correct"), drop=FALSE], by=list(subject=Nic1$subject), FUN=length)
+Nic1$Nic1<-Nic1$correct
+Nic1$correct<-NULL
+
+Nc2 <- subset(iat1, subset=blockcode=="compatibletest2")
+Nc2 <- aggregate(Nc2[,c("correct"), drop=FALSE], by=list(subject=Nc2$subject), FUN=length)
+Nc2$Nc2<-Nc2$correct
+Nc2$correct<-NULL
+
+Nic2 <- subset(iat1, subset=blockcode=="incompatibletest2")
+Nic2 <- aggregate(Nic2[,c("correct"), drop=FALSE], by=list(subject=Nic2$subject), FUN=length)
+Nic2$Nic2<-Nic2$correct
+Nic2$correct<-NULL
+
+# Other Error components
+Err1a <- subset(com1, subset=correct==1)
+Err1a <- aggregate(Err1a[,c("correct"), drop=FALSE], by=list(subject=Err1a$subject), FUN=length)
+Err1a<- merge(Err1a, Nc1, by="subject",all=TRUE)
+Err1a$Err1a<-((Err1a$Nc1-Err1a$correct)/Err1a$Nc1)*100
+Err1a$correct<-NULL
+Err1a$Nc1<-NULL
+
+Err2a <- subset(incom1, subset=correct==1)
+Err2a <- aggregate(Err2a[,c("correct"), drop=FALSE], by=list(subject=Err2a$subject), FUN=length)
+Err2a<- merge(Err2a, Nic1, by="subject",all=TRUE)
+Err2a$Err2a<-((Err2a$Nic1-Err2a$correct)/Err2a$Nic1)*100
+Err2a$correct<-NULL
+Err2a$Nic1<-NULL
+
+Err1b <- subset(com2, subset=correct==1)
+Err1b <- aggregate(Err1b[,c("correct"), drop=FALSE], by=list(subject=Err1b$subject), FUN=length)
+Err1b<- merge(Err1b, Nc2, by="subject",all=TRUE)
+Err1b$Err1b<-((Err1b$Nc2-Err1b$correct)/Err1b$Nc2)*100
+Err1b$correct<-NULL
+Err1b$Nc2<-NULL
+
+Err2b <- subset(incom2, subset=correct==1)
+Err2b <- aggregate(Err2b[,c("correct"), drop=FALSE], by=list(subject=Err2b$subject), FUN=length)
+Err2b<- merge(Err2b, Nic2, by="subject",all=TRUE)
+Err2b$Err2b<-((Err2b$Nic2-Err2b$correct)/Err2b$Nic2)*100
+Err2b$correct<-NULL
+Err2b$Nic2<-NULL
+
+# Merge all errors  
+ErrAll <- merge(Err1a, Err2a, by="subject",all=TRUE)
+ErrAll$Na.x <- NULL
+ErrAll$Na.y <- NULL
+ErrAll <- merge(ErrAll, Err1b, by="subject",all=TRUE)
+ErrAll$Nb <- NULL
+ErrAll <- merge(ErrAll, Err2b, by="subject",all=TRUE)
+ErrAll$Nb <- NULL
+
+# To convert NA to 0.0
+ErrAll$Err1a [is.na(ErrAll$Err1a)]<-0
+ErrAll$Err1b [is.na(ErrAll$Err1b)]<-0
+ErrAll$Err2a [is.na(ErrAll$Err2a)]<-0
+ErrAll$Err2b [is.na(ErrAll$Err2b)]<-0
+
+ErrAll$ERR_1<-(ErrAll$Err1a+ErrAll$Err1b)/2
+ErrAll$ERR_2<-(ErrAll$Err2a+ErrAll$Err2b)/2
+
+# Aggregate as mean for each block
+incom1MeanLat <- aggregate(incom1[,c("latency"), drop=FALSE], by=list(subject=incom1$subject), FUN=mean)
+incom1MeanLat$latIncom1<-incom1MeanLat$latency
+incom1MeanLat$latency <- NULL
+incom2MeanLat <- aggregate(incom2[,c("latency"), drop=FALSE], by=list(subject=incom2$subject), FUN=mean)
+incom2MeanLat$latIncom2<-incom2MeanLat$latency
+incom2MeanLat$latency <- NULL
+com1MeanLat <- aggregate(com1[,c("latency"), drop=FALSE], by=list(subject=com1$subject), FUN=mean)
+com1MeanLat$latcom1<-com1MeanLat$latency
+com1MeanLat$latency <- NULL
+com2MeanLat <- aggregate(com2[,c("latency"), drop=FALSE], by=list(subject=com2$subject), FUN=mean)
+com2MeanLat$latcom2<-com2MeanLat$latency
+com2MeanLat$latency <- NULL
+iatsd1 <- aggregate(sd1[,c("latency"), drop=FALSE], by=list(subject=sd1$subject), FUN=sd)
+iatsd1$sd1<-iatsd1$latency
+iatsd1$latency <- NULL
+iatsd2 <- aggregate(sd2[,c("latency"), drop=FALSE], by=list(subject=sd2$subject), FUN=sd)
+iatsd2$sd2<-iatsd2$latency
+iatsd2$latency <- NULL
+
+# Merge into one dataset
+iatScore<- merge(incom1MeanLat, incom2MeanLat, by="subject")
+iatScore<- merge(iatScore, com1MeanLat, by="subject")
+iatScore<- merge(iatScore, com2MeanLat, by="subject")
+iatScore<- merge(iatScore, iatsd1, by="subject")
+iatScore<- merge(iatScore, iatsd2, by="subject")
+
+# D Score Calculation and final output
+iatScore$Da <- (iatScore$latIncom1-iatScore$latcom1)/iatScore$sd1
+iatScore$Db <- (iatScore$latIncom2-iatScore$latcom2)/iatScore$sd2
+iatScore$D <- ((iatScore$Da+iatScore$Db)/2)
+iatScore$ORDER<-ifelse(iatScore$subject%%2==1,1,2)
+
+DScore<- merge(iatScore, iatError, by="subject")
+DScore<- merge(DScore, ErrAll, by="subject")
+DScore<- merge(DScore, Na, by="subject")
+DScore<- merge(DScore, Nb, by="subject")
+DScore<- merge(DScore, iatMeanLat, by="subject")
+DScore<- merge(DScore, iat300, by="subject")
+DScore<- merge(DScore, iat400, by="subject")
+DScore<- merge(DScore, iat10k, by="subject")
+DScore
+
+# To generate output similar to the SPSS script available on www.millisecond.com
+DScore1 <- data.frame(Subject=DScore$subject, ORDER=DScore$ORDER, D_biep_a=DScore$Da, D_biep_b=DScore$Db, M1a=DScore$latcom1, M2a=DScore$latIncom1, M1b=DScore$latcom2, M2b=DScore$latIncom2, ERR1a=DScore$Err1a, ERR2a=DScore$Err2a, ERR1b=DScore$Err1b, ERR2b=DScore$Err2b, Na=DScore$Na, Nb=DScore$Nb, ERR_1=DScore$ERR_1, ERR_2=DScore$ERR_2, D_biep=DScore$D, PCT_300=DScore$Err300, PCT_400=DScore$Err400, PCT_10K=DScore$Err10k, AVELTNCY=DScore$latency, ERRORPCT=DScore$ErrPer, NTRIALS=DScore$valid)
+
+# To create an output file in excel format and store it in 
+write.table(DScore1, "D:/IAT output file.xlxs", sep="\t", col.names=TRUE, row.names=FALSE, quote=TRUE, na="NA")
